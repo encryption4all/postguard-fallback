@@ -1,16 +1,19 @@
 use core::fmt::Formatter;
-use irmaseal_core::api::KeyRequest;
+use core::pin::Pin;
+use core::task::{Context, Poll};
+use futures::sink::Sink;
 use std::fmt::Display;
-use wasm_bindgen::prelude::*;
-use wasm_bindgen::{JsCast, JsValue};
-use wasm_bindgen_futures::JsFuture;
 
+use irmaseal_core::api::KeyRequest;
 use irmaseal_core::kem::cgw_kv::CGWKV;
 use irmaseal_core::stream::WebUnsealer;
 use irmaseal_core::{Attribute, UserSecretKey};
-use wasm_streams::readable::{IntoStream, ReadableStream};
-use wasm_streams::writable::WritableStream;
 
+use js_sys::Uint8Array;
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::{JsCast, JsValue};
+use wasm_bindgen_futures::JsFuture;
+use wasm_streams::readable::{IntoStream, ReadableStream};
 use web_sys::File as WebFile;
 
 use crate::attributes::EMAIL_ATTRIBUTE_IDENTIFIER;
@@ -29,6 +32,30 @@ impl Display for DecryptError {
             DecryptError::Failed => write!(f, "failed to decrypt"),
             DecryptError::Unknown => write!(f, "unknown file type"),
         }
+    }
+}
+
+struct IntoVec(pub Vec<u8>);
+
+impl Sink<JsValue> for IntoVec {
+    type Error = JsValue;
+
+    fn poll_ready(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn start_send(self: Pin<&mut Self>, item: JsValue) -> Result<(), Self::Error> {
+        let arr: Uint8Array = item.dyn_into()?;
+        self.get_mut().0.extend_from_slice(arr.to_vec().as_slice());
+        Ok(())
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
     }
 }
 
@@ -51,7 +78,7 @@ pub async fn decrypt_file(
         .meta
         .policies
         .get(identifier)
-        .unwrap() // TODO: can panic when user inputs wrong identifier
+        .unwrap()
         .policy
         .timestamp;
 
@@ -62,13 +89,12 @@ pub async fn decrypt_file(
         .or(Err(DecryptError::Failed))?;
 
     let usk: UserSecretKey<CGWKV> = usk_string.into_serde().unwrap();
-    let recording = crate::js_functions::RecordingWritableStream::new();
-    let mut write = WritableStream::from_raw(recording.stream()).into_sink();
+    let mut sink = IntoVec(Vec::new());
 
     unsealer
-        .unseal(identifier, &usk, &mut write)
+        .unseal(identifier, &usk, &mut sink)
         .await
         .or(Err(DecryptError::Failed))?;
 
-    Ok(recording.written())
+    Ok(sink.0)
 }

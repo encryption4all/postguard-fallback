@@ -8,15 +8,6 @@
             content="Send and receive encrypted using IRMA"
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <script
-            src="https://unpkg.com/web-streams-polyfill@3.2.1/dist/ponyfill.mjs"
-            type="module"
-        ></script>
-        <script type="module">
-            import { WritableStream } from "https://unpkg.com/web-streams-polyfill@3.2.1/dist/ponyfill.mjs";
-            if (!globalThis.WritableStream)
-                globalThis.WritableStream = WritableStream;
-        </script>
         <script src="/static/irma.bundle.min.js"></script>
         <link data-trunk rel="css" href="/static/irma.min.css" />
         <link data-trunk rel="sass" href="./style/style.scss" />

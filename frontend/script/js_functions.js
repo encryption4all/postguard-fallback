@@ -152,13 +152,3 @@ export async function decrypt_cfb_hmac(ciphertext, key, iv) {
     return null;
   }
 }
-
-export function new_raw_recording_writable_stream() {
-  const written = [];
-  const stream = new WritableStream({
-    write(chunk) {
-      written.push(chunk);
-    },
-  });
-  return { stream, written };
-}
