@@ -8,7 +8,7 @@ arrayvec = "0.7.1"
 base64 = "0.13.0"
 common = { path = "../common" }
 hex = "0.4.3"
-irmaseal-core = { path = "../../irmaseal/irmaseal-core", features = ["wasm_stream"]}
+irmaseal-core = { version = "0.2.0-beta.2", features = ["wasm_stream"] }
 js-sys = "0.3.53"
 lettre = { version = "0.10.0-rc.4", default-features = false, features = ["builder"] }
 mail-parser = "0.4.1"
