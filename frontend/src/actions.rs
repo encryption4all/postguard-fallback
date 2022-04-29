@@ -9,14 +9,13 @@ use common::{
     AttributeValue, DownloadResult, MessageData, RecipientMessage, SealedMessage, SignResult,
 };
 
+#[cfg(feature = "download")]
 use crate::components::receive_form::{ReceiveForm, ReceiveFormMsg};
+#[cfg(feature = "send")]
 use crate::components::send_form::{SendForm, SendFormMsg, SendFormStatus};
-use crate::ibs::seal;
-use crate::ibs::unseal;
-use crate::js_functions::{
-    download, download_bytes, get_public_key, irma_get_usk, irma_sign, send_message,
-    verify_signature, IrmaSession,
-};
+//use crate::ibs::seal;
+//use crate::ibs::unseal;
+use crate::js_functions::*;
 use crate::mime::convert_from_mime;
 use crate::types::{FormData, ReceivedData};
 
@@ -48,6 +47,7 @@ impl Display for SendError {
 
 impl Error for SendError {}
 
+#[cfg(feature = "sign")]
 pub async fn sign(link: &ComponentLink<SendForm>, message: &str) -> Result<String, SendError> {
     link.send_message(SendFormMsg::UpdateStatus(SendFormStatus::Encrypting));
     let hash = hex::encode(Sha3_512::digest(message));
@@ -64,6 +64,7 @@ pub async fn sign(link: &ComponentLink<SendForm>, message: &str) -> Result<Strin
     Ok(signature)
 }
 
+#[cfg(feature = "send")]
 pub async fn encrypt_and_submit(
     link: &ComponentLink<SendForm>,
     form: FormData,
@@ -94,23 +95,24 @@ pub async fn encrypt_and_submit(
     Ok(())
 }
 
-pub async fn decrypt_message(message: &SealedMessage) -> Option<String> {
-    // TODO here comes multiple attribute support
-    let attribute: AttributeValue = message.attributes[0].clone();
+//pub async fn decrypt_message(message: &SealedMessage) -> Option<String> {
+//    // TODO here comes multiple attribute support
+//    let attribute: AttributeValue = message.attributes[0].clone();
+//
+//    let irma_session = IrmaSession {
+//        attribute_identifier: attribute.identifier.0.clone(),
+//        attribute_value: attribute.value.to_owned(),
+//        timestamp: message.timestamp,
+//    };
+//
+//    let usk = irma_get_usk(JsValue::from_serde(&irma_session).ok()?)
+//        .await
+//        .as_string()?;
+//
+//    unseal(message, usk).await
+//}
 
-    let irma_session = IrmaSession {
-        attribute_identifier: attribute.identifier.0.clone(),
-        attribute_value: attribute.value.to_owned(),
-        timestamp: message.timestamp,
-    };
-
-    let usk = irma_get_usk(JsValue::from_serde(&irma_session).ok()?)
-        .await
-        .as_string()?;
-
-    unseal(message, usk).await
-}
-
+#[cfg(feature = "download")]
 pub async fn download_and_decrypt(link: &ComponentLink<ReceiveForm>, id: &str) -> Option<()> {
     let message_metadata: DownloadResult = download(id).await?;
     let message_data = download_bytes(&message_metadata.content).await?;

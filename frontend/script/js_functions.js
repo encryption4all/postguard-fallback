@@ -1,20 +1,22 @@
+const PKG_URL = "https://main.irmaseal-pkg.ihub.ru.nl";
+
 export async function encrypt(message, key, iv) {
   try {
-    const keyHash = await crypto.subtle.digest('SHA-256', key);
+    const keyHash = await crypto.subtle.digest("SHA-256", key);
     const aesKey = await window.crypto.subtle.importKey(
-      'raw',
+      "raw",
       keyHash,
-      'AES-GCM',
+      "AES-GCM",
       true,
-      ['encrypt']
+      ["encrypt"]
     );
     const ct = await window.crypto.subtle.encrypt(
       {
-        name: 'AES-GCM',
+        name: "AES-GCM",
         iv,
       },
       aesKey,
-      (new TextEncoder()).encode(message),
+      new TextEncoder().encode(message)
     );
 
     return new Uint8Array(ct);
@@ -24,38 +26,48 @@ export async function encrypt(message, key, iv) {
   }
 }
 
-export async function irma_get_usk(session) {
-  const identity = { type: session.attribute_identifier, value: session.attribute_value };
-
-  try {
-    const usk = await window.startIrma({
-      identity,
-      timestamp: session.timestamp,
-      maxAge: 300,
-      url: 'https://irmacrypt.nl/pkg',
+export function irma_get_usk(keyrequest, timestamp) {
+  return window
+    .startIrma({
+      url: PKG_URL,
       start: {
-        url: (o) => `${o.url}/v1/request`,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          attribute: identity,
-        }),
+        url: (o) => `${o.url}/v2/request/start`,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(keyrequest),
       },
-      state: { serverSentEvents: false },
       mapping: {
-        sessionPtr: (r) => JSON.parse(r.qr),
+        sessionPtr: (r) => {
+          const ptr = r.sessionPtr;
+          ptr.u = `https://ihub.ru.nl/irma/1/${ptr.u}`;
+          return ptr;
+        },
       },
       result: {
-        url: (o, { sessionToken }) => `${o.url}/v1/request/${sessionToken}/${o.timestamp.toString()}`,
-        parseResponse: (r) => r.json().then((r) => (r.status === 'DONE_VALID' ? r.key : null)),
+        url: (o, { sessionToken }) => `${o.url}/v2/request/jwt/${sessionToken}`,
+        parseResponse: (r) => {
+          return r
+            .text()
+            .then((encoded) => {
+              return fetch(
+                `${PKG_URL}/v2/request/key/${timestamp.toString()}`,
+                {
+                  headers: {
+                    Authorization: `Bearer ${encoded}`,
+                  },
+                }
+              );
+            })
+            .then((r) => r.json())
+            .then((json) => {
+              if (json.status !== "DONE" || json.proofStatus !== "VALID")
+                throw new Error("not done and valid");
+              return json.key;
+            });
+        },
       },
-    });
-
-    return usk;
-  } catch (e) {
-    console.error(e);
-    return null;
-  }
+    })
+    .catch((e) => console.error(e));
 }
 
 export async function irma_sign(hash) {
@@ -64,11 +76,11 @@ export async function irma_sign(hash) {
       maxAge: 300,
       start: {
         url: (o) => `${o.url}/api/sign`,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-         hash,
-         attributes: ["pbdf.sidn-pbdf.email.email"],
+          hash,
+          attributes: ["pbdf.sidn-pbdf.email.email"],
         }),
       },
       state: { serverSentEvents: false },
@@ -76,7 +88,8 @@ export async function irma_sign(hash) {
         sessionPtr: (r) => r.sessionPtr,
       },
       result: {
-        url: (o, { sessionToken }) => `${o.url}/api/sign_result?session=${sessionToken}`,
+        url: (o, { sessionToken }) =>
+          `${o.url}/api/sign_result?session=${sessionToken}`,
         parseResponse: (r) => r.text(),
       },
     });
@@ -90,24 +103,24 @@ export async function irma_sign(hash) {
 
 export async function decrypt(ciphertext, key, iv) {
   try {
-    const keyHash = await crypto.subtle.digest('SHA-256', key);
+    const keyHash = await crypto.subtle.digest("SHA-256", key);
     const aesKey = await window.crypto.subtle.importKey(
-      'raw',
+      "raw",
       keyHash,
-      'AES-GCM',
+      "AES-GCM",
       true,
-      ['decrypt']
+      ["decrypt"]
     );
     const encoded = await window.crypto.subtle.decrypt(
       {
-        name: 'AES-GCM',
+        name: "AES-GCM",
         iv,
       },
       aesKey,
       ciphertext
     );
 
-    return (new TextDecoder()).decode(encoded).toString();
+    return new TextDecoder().decode(encoded).toString();
   } catch (e) {
     console.error(e);
     return null;
@@ -117,17 +130,17 @@ export async function decrypt(ciphertext, key, iv) {
 export async function decrypt_cfb_hmac(ciphertext, key, iv) {
   try {
     const aesKey = await window.crypto.subtle.importKey(
-      'raw',
+      "raw",
       key,
-      { name: 'AES-CTR', length: 32 * 8 },
+      { name: "AES-CTR", length: 32 * 8 },
       true,
-      ['decrypt']
+      ["decrypt"]
     );
     const encoded = await window.crypto.subtle.decrypt(
       {
-        name: 'AES-CTR',
+        name: "AES-CTR",
         counter: iv,
-        length: 64
+        length: 64,
       },
       aesKey,
       ciphertext
@@ -140,3 +153,12 @@ export async function decrypt_cfb_hmac(ciphertext, key, iv) {
   }
 }
 
+export function new_raw_recording_writable_stream() {
+  const written = [];
+  const stream = new WritableStream({
+    write(chunk) {
+      written.push(chunk);
+    },
+  });
+  return { stream, written };
+}

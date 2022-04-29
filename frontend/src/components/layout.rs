@@ -24,7 +24,7 @@ impl Component for Layout {
     fn view(&self) -> yew::Html {
         html! {
             <main>
-                <Title>{"TGuard"}</Title>
+                <Title/>
                 { for self.props.children.iter() }
             </main>
         }

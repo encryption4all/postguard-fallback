@@ -1,20 +1,28 @@
-use std::collections::HashMap;
+use irmaseal_core::stream::WebUnsealer;
+use std::cell::RefCell;
+use std::rc::Rc;
 use wasm_bindgen_futures::spawn_local;
-use yew::{
-    html,
-    services::reader::{File, FileData, ReaderService, ReaderTask},
-    ChangeData, Component, ComponentLink, Html, ShouldRender,
-};
+use wasm_streams::readable::IntoStream;
+use yew::{html, ChangeData, Component, ComponentLink, Html, ShouldRender};
 
 use crate::{
     components::common::alert::{Alert, AlertKind},
-    decrypt::{decrypt_file, DecryptError},
-    mime::convert_from_mime,
-    types::File as FileType,
+    decrypt::{decrypt_file, read_metadata, DecryptError},
+    mime::parse_attachments,
+    types::File,
 };
 
-type FileName = String;
-type Message = String;
+use mail_parser::{HeaderValue, Message};
+use web_sys::{File as WebFile, HtmlCollection};
+
+type Unsealer = WebUnsealer<IntoStream<'static>>;
+
+pub struct ExtractedFields {
+    from: String,
+    body: String,
+    subject: String,
+    attachments: Vec<File>,
+}
 
 #[derive(PartialEq)]
 pub enum UploadFormStatus {
@@ -25,23 +33,40 @@ pub enum UploadFormStatus {
 }
 
 pub enum UploadMsg {
-    Loaded((FileName, FileData)),
-    Decrypted((FileName, String, Vec<FileType>)),
+    AddFile(WebFile),
+    Decrypting(Vec<String>, Unsealer),
+    Select(String),
+    Decrypted(ExtractedFields),
     DecryptionFailed(DecryptError),
-    AddFiles(Vec<File>),
 }
 
 pub struct Upload {
     link: ComponentLink<Self>,
     status: UploadFormStatus,
-    decrypted: Vec<(FileName, Message, Vec<FileType>)>,
-    tasks: HashMap<FileName, ReaderTask>,
+    unsealer: Option<Rc<RefCell<Unsealer>>>,
+    recipients: Option<Vec<String>>,
+    fields: Option<ExtractedFields>,
 }
 
-fn convert_and_parse(raw: &[u8]) -> Option<(String, Vec<FileType>)> {
+fn convert_and_parse(raw: &[u8]) -> Option<ExtractedFields> {
     let plain = String::from_utf8(raw.to_vec()).ok()?;
-    let converted = convert_from_mime(&plain)?;
-    Some(converted)
+    let message = Message::parse(plain.as_bytes())?;
+    let from = match message.get_from() {
+        HeaderValue::Address(addr) => addr.address.clone(),
+        _ => None,
+    }?
+    .to_string();
+
+    let body = message.get_text_body(0)?.to_string();
+    let subject = message.get_subject()?.to_string();
+    let attachments = parse_attachments(message);
+
+    Some(ExtractedFields {
+        from,
+        body,
+        subject,
+        attachments,
+    })
 }
 
 impl Component for Upload {
@@ -52,62 +77,58 @@ impl Component for Upload {
         Self {
             link,
             status: UploadFormStatus::Initial,
-            tasks: HashMap::default(),
-            decrypted: vec![],
+            unsealer: None,
+            recipients: None,
+            fields: None,
         }
     }
 
     fn update(&mut self, msg: Self::Message) -> ShouldRender {
         match msg {
-            Self::Message::DecryptionFailed(e) => {
-                self.status = UploadFormStatus::Error(e);
-                true
-            }
-            Self::Message::Decrypted(message) => {
-                self.decrypted.push(message);
-                self.status = UploadFormStatus::Success;
-                true
-            }
-            Self::Message::Loaded((filename, file)) => {
-                self.status = UploadFormStatus::Decrypting;
-                self.tasks.remove(&filename);
+            Self::Message::AddFile(file) => {
                 let link = self.link.clone();
 
                 spawn_local(async move {
-                    match decrypt_file(&file).await {
-                        Ok(content) => {
-                            let (message, attachments) = convert_and_parse(&content).unwrap_or((
-                                String::new(),
-                                vec![FileType {
-                                    filename: filename.clone(),
-                                    mimetype: "application/octet-stream".to_owned(),
-                                    content,
-                                }],
-                            ));
-                            link.send_message(Self::Message::Decrypted((
-                                filename,
-                                message,
-                                attachments,
-                            )))
-                        }
-                        Err(e) => link.send_message(Self::Message::DecryptionFailed(e)),
-                    };
+                    let unsealer = read_metadata(&file).await;
+                    let recipients: Vec<String> = unsealer.meta.policies.keys().cloned().collect();
+                    link.send_message(Self::Message::Decrypting(recipients, unsealer));
                 });
 
                 true
             }
-            Self::Message::AddFiles(files) => {
-                for file in files.into_iter() {
-                    let filename = file.name();
-                    let task = {
-                        let filename = filename.clone();
-                        let callback = self
-                            .link
-                            .callback(move |data| Self::Message::Loaded((filename.clone(), data)));
-                        ReaderService::read_file(file, callback).unwrap()
-                    };
-                    self.tasks.insert(filename, task);
-                }
+            Self::Message::Decrypting(recipients, unsealer) => {
+                self.unsealer = Some(Rc::new(RefCell::new(unsealer)));
+                self.recipients = Some(recipients);
+                self.status = UploadFormStatus::Decrypting;
+
+                true
+            }
+            Self::Message::Select(identifier) => {
+                let link = self.link.clone();
+                let inner = self.unsealer.as_ref().unwrap().clone();
+
+                spawn_local(async move {
+                    link.send_message(
+                        match decrypt_file(&mut inner.try_borrow_mut().unwrap(), &identifier).await
+                        {
+                            Ok(content) => match convert_and_parse(&content) {
+                                Some(parsed) => Self::Message::Decrypted(parsed),
+                                None => Self::Message::DecryptionFailed(DecryptError::Deserialize),
+                            },
+                            Err(e) => Self::Message::DecryptionFailed(e),
+                        },
+                    );
+                });
+
+                true
+            }
+            Self::Message::Decrypted(fields) => {
+                self.fields = Some(fields);
+                self.status = UploadFormStatus::Success;
+                true
+            }
+            Self::Message::DecryptionFailed(e) => {
+                self.status = UploadFormStatus::Error(e);
                 true
             }
         }
@@ -130,28 +151,55 @@ impl Component for Upload {
                         },
                         _ => html!{
                             <Alert kind=AlertKind::Empty>
-                                {"Select an IRMASeal file to decrypt"}
+                                {"Select a PostGuard (e.g., \"postguard.encrypted\") file to decrypt"}
                             </Alert>
                         }
                     }
                 }
                 <div>
                     <input type="file" multiple=false onchange=self.link.callback(move |value| {
-                        let mut result = Vec::new();
-                        if let ChangeData::Files(files) = value {
-                            let files = js_sys::try_iter(&files)
-                                .unwrap()
-                                .unwrap()
-                                .map(|v| File::from(v.unwrap()));
-                            result.extend(files);
+                        match value  {
+                            ChangeData::Files(files) if files.length() == 1 => Self::Message::AddFile(files.get(0).unwrap()),
+                            _ => Self::Message::DecryptionFailed(DecryptError::Failed)
                         }
-                        Self::Message::AddFiles(result)
                     })
                     />
                 </div>
-                { if !self.decrypted.is_empty() {
+                { if self.status == UploadFormStatus::Decrypting {
+                    html! {
+                        <>
+                            <label for="email">{"Please select your e-mail address:"}</label>
+                            <select multiple=false required=true onchange=self.link.callback(move |data| {
+                                 let selected_value:Option<String> = match data {
+                                     ChangeData::Select(select_data) => {
+                                         let selected_options: HtmlCollection = select_data.selected_options();
+                                         if selected_options.length() == 1 {
+                                             selected_options.item(0u32).map(|x| x.text_content()).flatten()
+                                         } else {
+                                             None
+                                         }
+                                     },
+                                     _ => None
+                                 };
+                                 match selected_value {
+                                     Some(str) => Self::Message::Select(str),
+                                     _ => Self::Message::DecryptionFailed(DecryptError::Unknown)
+                                 }
+                             })>
+                            <option disabled=true>{"Select a value"}</option>
+                            { for self.recipients.as_ref().unwrap().iter().map(|rec|
+                            html!{
+                                <option value=rec.to_string()>{rec.to_string()}</option>
+                            })}
+                            </select>
+                        </>
+                    }
+                } else {
+                    html! {}
+                }}
+                { if self.fields.is_some() {
                     html!{
-                        { for self.decrypted.iter().map(Self::view_decrypted) }
+                        { Self::view_decrypted(self.fields.as_ref().unwrap()) }
                     }
                 } else {
                     html!{}
@@ -162,42 +210,46 @@ impl Component for Upload {
 }
 
 impl Upload {
-    fn view_decrypted(decrypted: &(FileName, Message, Vec<FileType>)) -> Html {
+    fn view_decrypted(decrypted: &ExtractedFields) -> Html {
         html! {
             <div class="decrypted">
                 <dl>
-                    <dt>{"File name:"}</dt>
-                    <dd>{decrypted.0.clone()}</dd>
-                    {if decrypted.1.is_empty() {
-                        html!{}
-                    } else {
+                    <dt>{"From:"}</dt>
+                    <dd>{decrypted.from.clone()}</dd>
+                    <dt>{"Subject:"}</dt>
+                    <dd>{decrypted.subject.clone()}</dd>
+                    { if !decrypted.body.is_empty() {
                         html!{
                             <>
                                 <dt>{"Message:"}</dt>
                                 <dd>
                                     <pre>
-                                      {decrypted.1.clone()}
+                                      {decrypted.body.clone()}
                                     </pre>
                                 </dd>
                             </>
                         }
+                    } else {
+                        html!{}
                     }}
                 </dl>
-                <label>
-                    {if decrypted.1.is_empty() {
-                        "Attachments:"
+                    {if !decrypted.attachments.is_empty() {
+                        html!{
+                            <>
+                                <label>{"Attachments:"}</label>
+                                <table class="files">
+                                { for decrypted.attachments.iter().map(Self::view_file) }
+                                </table>
+                            </>
+                        }
                     } else {
-                        "Decrypted:"
+                        html!{}
                     }}
-                </label>
-                <table class="files">
-                    { for decrypted.2.iter().map(Self::view_file) }
-                </table>
             </div>
         }
     }
 
-    fn view_file(data: &FileType) -> Html {
+    fn view_file(data: &File) -> Html {
         let content = base64::encode(&data.content);
 
         html! {

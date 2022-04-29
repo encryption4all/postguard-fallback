@@ -82,6 +82,13 @@ fn parse_attachment(attachment: &MessagePart) -> Option<File> {
     }
 }
 
+pub fn parse_attachments(message: Message) -> Vec<File> {
+    message
+        .get_attachments()
+        .filter_map(parse_attachment)
+        .collect()
+}
+
 pub fn convert_from_mime(message: &str) -> Option<(String, Vec<File>)> {
     let email = Message::parse(message.as_bytes())?;
 

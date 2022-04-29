@@ -1,16 +1,17 @@
-use std::collections::HashMap;
-
 use common::DownloadResult;
-use js_sys::Uint8Array;
+use js_sys::{Promise, Uint8Array};
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::{
     prelude::{wasm_bindgen, JsValue},
     JsCast,
 };
 use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, Response};
+
+use wasm_streams::writable::sys::WritableStream as RawWritableStream;
 
 use crate::actions::SendError;
+use std::collections::HashMap;
+use web_sys::{Request, RequestInit, Response};
 
 #[derive(Deserialize, Serialize)]
 pub struct IrmaSession {
@@ -24,8 +25,8 @@ extern "C" {
     pub async fn encrypt(message: String, key: &[u8], iv: &[u8]) -> JsValue;
     pub async fn decrypt(ciphertext: &[u8], key: &[u8], iv: &[u8]) -> JsValue;
     pub async fn decrypt_cfb_hmac(ciphertext: &[u8], key: &[u8], iv: &[u8]) -> JsValue;
-    pub async fn irma_get_usk(session: JsValue) -> JsValue;
     pub async fn irma_sign(hash: String) -> JsValue;
+    pub fn irma_get_usk(session: JsValue, timestamp: u64) -> Promise;
 }
 
 pub async fn download_bytes(url: &str) -> Option<Vec<u8>> {
@@ -47,7 +48,7 @@ struct PublicKeyResponse {
 }
 
 pub async fn get_public_key() -> Option<String> {
-    let data = download_bytes("https://irmacrypt.nl/pkg/v1/parameters").await?;
+    let data = download_bytes("https://main.irmaseal-pkg.ihub.ru.nl").await?;
     Some(
         serde_json::from_slice::<PublicKeyResponse>(&data)
             .ok()?
@@ -55,6 +56,7 @@ pub async fn get_public_key() -> Option<String> {
     )
 }
 
+#[cfg(feature = "send")]
 pub async fn send_message(body: &str) -> Result<(), SendError> {
     let mut opts = RequestInit::new();
     opts.method("POST");
@@ -83,6 +85,7 @@ pub async fn send_message(body: &str) -> Result<(), SendError> {
     }
 }
 
+#[cfg(feature = "sign")]
 pub async fn verify_signature(signature: &str) -> Option<HashMap<String, String>> {
     let mut opts = RequestInit::new();
     opts.method("POST");
@@ -106,5 +109,43 @@ pub async fn verify_signature(signature: &str) -> Option<HashMap<String, String>
         Some(serde_json::from_slice(&data).ok()?)
     } else {
         None
+    }
+}
+
+#[wasm_bindgen(module = "/script/js_functions.js")]
+extern "C" {
+    pub fn new_raw_recording_writable_stream() -> RawRecordingWritableStream;
+
+    #[derive(Clone, Debug)]
+    pub type RawRecordingWritableStream;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn stream(this: &RawRecordingWritableStream) -> RawWritableStream;
+
+    #[wasm_bindgen(method, getter)]
+    pub fn written(this: &RawRecordingWritableStream) -> Box<[JsValue]>;
+}
+
+pub struct RecordingWritableStream {
+    raw: RawRecordingWritableStream,
+}
+
+impl RecordingWritableStream {
+    pub fn new() -> Self {
+        Self {
+            raw: new_raw_recording_writable_stream(),
+        }
+    }
+
+    pub fn stream(&self) -> RawWritableStream {
+        self.raw.stream()
+    }
+
+    pub fn written(&self) -> Vec<u8> {
+        self.raw
+            .written()
+            .iter()
+            .flat_map(|chunk| chunk.dyn_ref::<Uint8Array>().unwrap().to_vec())
+            .collect()
     }
 }

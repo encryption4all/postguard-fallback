@@ -2,7 +2,7 @@ use core::convert::TryFrom;
 use core::convert::TryInto;
 
 use arrayvec::ArrayVec;
-use ibe::kiltz_vahlis_one::Identity;
+//use ibe::kiltz_vahlis_one::Identity;
 use js_sys::Uint8Array;
 use rand::Rng;
 

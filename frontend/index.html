@@ -1,13 +1,25 @@
 <!DOCTYPE html lang="en">
 <html>
-<head>
-  <meta charset="utf-8" />
-  <title>TGuard</title>
-  <meta name="description" content="Send and receive encrypted using IRMA" />
-  <script src="/static/irma.bundle.min.js"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link data-trunk rel="css" href="/static/irma.min.css" />
-  <link data-trunk rel="sass" href="./style/style.scss" />
-  <link data-trunk rel="copy-dir" href="./static"/>
-</head>
+    <head>
+        <meta charset="utf-8" />
+        <title>PostGuard</title>
+        <meta
+            name="description"
+            content="Send and receive encrypted using IRMA"
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <script
+            src="https://unpkg.com/web-streams-polyfill@3.2.1/dist/ponyfill.mjs"
+            type="module"
+        ></script>
+        <script type="module">
+            import { WritableStream } from "https://unpkg.com/web-streams-polyfill@3.2.1/dist/ponyfill.mjs";
+            if (!globalThis.WritableStream)
+                globalThis.WritableStream = WritableStream;
+        </script>
+        <script src="/static/irma.bundle.min.js"></script>
+        <link data-trunk rel="css" href="/static/irma.min.css" />
+        <link data-trunk rel="sass" href="./style/style.scss" />
+        <link data-trunk rel="copy-dir" href="./static" />
+    </head>
 </html>

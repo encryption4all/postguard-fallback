@@ -8,8 +8,7 @@ arrayvec = "0.7.1"
 base64 = "0.13.0"
 common = { path = "../common" }
 hex = "0.4.3"
-ibe = "0.1.4"
-irmaseal-core = { git = "https://github.com/encryption4all/irmaseal.git" }
+irmaseal-core = { path = "../../irmaseal/irmaseal-core", features = ["wasm_stream"]}
 js-sys = "0.3.53"
 lettre = { version = "0.10.0-rc.4", default-features = false, features = ["builder"] }
 mail-parser = "0.4.1"
@@ -25,17 +24,32 @@ yew = "0.18"
 yew-router = "0.15.0"
 mime_guess = "2.0.3"
 mime = "0.3.16"
+getrandom = { version = "0.2", features = ["js"] }
+wasm-streams = "0.2.2"
+futures = "0.3.21"
 
 [dependencies.web-sys]
-version = "0.3.53"
+version = "0.3.55"
 features = [
   'Headers',
   'Request',
   'RequestInit',
   'Response',
   'Window',
+  'Blob',
+  'ReadableStream',
+  'FileList',
+  'HtmlSelectElement',
+  'HtmlCollection',
 ]
 
 [dev-dependencies]
 regex = "1.5.4"
 wasm-bindgen-test = "0.3.0"
+
+[features]
+default = ["upload"]
+upload = []
+download = []
+send = []
+sign = []
