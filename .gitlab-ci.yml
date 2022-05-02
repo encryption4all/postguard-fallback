@@ -13,8 +13,6 @@ variables:
 
 build-image:
     stage: build-image
-    only:
-        - stable
     tags: [docker]
     image: docker:stable
     script:
