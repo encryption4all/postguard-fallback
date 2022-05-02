@@ -12,7 +12,7 @@ variables:
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/postguard-fallback:${CI_COMMIT_REF_NAME}
 
 build-image:
-    stage: image
+    stage: build-image
     only:
         - stable
     tags: [docker]
