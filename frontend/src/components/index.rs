@@ -12,7 +12,7 @@ use crate::components::upload::Upload;
 #[derive(Switch, Debug, Clone)]
 pub enum AppRoute {
     #[cfg(feature = "upload")]
-    #[to = "/upload"]
+    #[to = "/"]
     Upload,
     #[cfg(feature = "download")]
     #[to = "/download/{id}"]
