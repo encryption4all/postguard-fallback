@@ -7,7 +7,7 @@ variables:
     GIT_DEPTH: "16"
     GIT_STRATEGY: fetch
     GIT_SUBMODULE_STRATEGY: recursive
-    STOREPATH: postguard/website/decrypt
+    STOREPATH: postguard/website
     BPSTOREC: bpstorec --verbose --host $STOREHOST --port $STOREPORT --username $STOREUSER --token $STORETOKEN
     CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/postguard-fallback:${CI_COMMIT_REF_NAME}
 
@@ -45,4 +45,4 @@ deploy-frontend:
         - curl -L https://bitpowder.com/packages/linux-packages.gpg > /etc/apt/trusted.gpg.d/bitpowder.asc
         - apt update
         - apt install -y indigo file
-        - cd frontend/dist && find . -type f -print0 | xargs -n 1 -0 -I %FILE% $BPSTOREC --naclcerts $STORECERTS put -f %FILE% $STOREPATH/file/%FILE%
+        - cd frontend/dist && find . -type f -print0 | xargs -n 1 -0 -I %FILE% $BPSTOREC --naclcerts $STORECERTS put -f %FILE% $STOREPATH/file/decrypt/%FILE%
