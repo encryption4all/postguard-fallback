@@ -1,0 +1,50 @@
+stages:
+    - build-image
+    - build-frontend
+    - deploy-frontend
+
+variables:
+    GIT_DEPTH: "16"
+    GIT_STRATEGY: fetch
+    GIT_SUBMODULE_STRATEGY: recursive
+    STOREPATH: postguard/website/decrypt
+    BPSTOREC: bpstorec --verbose --host $STOREHOST --port $STOREPORT --username $STOREUSER --token $STORETOKEN
+    CONTAINER_IMAGE: ${CI_REGISTRY}/${CI_PROJECT_PATH}/postguard-fallback:${CI_COMMIT_REF_NAME}
+
+build-image:
+    stage: image
+    only:
+        - stable
+    tags: [docker]
+    image: docker:stable
+    script:
+        - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
+        - docker build -f docker/rust.Dockerfile -t ${CONTAINER_IMAGE} .
+        - docker push ${CONTAINER_IMAGE}
+
+build-frontend:
+    stage: build-frontend
+    dependencies: [build-image]
+    tags: [docker]
+    image: ${CONTAINER_IMAGE}
+    script:
+        - cd frontend
+        - trunk build --release
+    artifacts:
+        paths:
+            - frontend/dist
+        expire_in: 7 days
+
+deploy-frontend:
+    stage: deploy-frontend
+    dependencies: [build-frontend]
+    tags: [docker]
+    image: "registry.science.ru.nl/ilab/docker-build/debian:bullseye"
+    script:
+        - apt update
+        - apt install -y curl
+        - echo "deb http://packages.bitpowder.com/indigo-debian-bullseye stable core"  > /etc/apt/sources.list.d/bitpowder-indigo.list
+        - curl -L https://bitpowder.com/packages/linux-packages.gpg > /etc/apt/trusted.gpg.d/bitpowder.asc
+        - apt update
+        - apt install -y indigo file
+        - cd frontend/dist && find . -type f -print0 | xargs -n 1 -0 -I %FILE% $BPSTOREC --naclcerts $STORECERTS put -f %FILE% $STOREPATH/file/%FILE%
