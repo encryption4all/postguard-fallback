@@ -17,7 +17,7 @@ build-image:
     image: docker:stable
     script:
         - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-        - docker build -f docker/rust.Dockerfile -t ${CONTAINER_IMAGE} .
+        - docker build -f docker/frontend.Dockerfile -t ${CONTAINER_IMAGE} .
         - docker push ${CONTAINER_IMAGE}
 
 build-frontend:
@@ -27,9 +27,9 @@ build-frontend:
     image: ${CONTAINER_IMAGE}
     script:
         - cd frontend
-        - yarn
-        - yarn build
-        - yarn minify
+        - yarnpkg
+        - yarnpkg build
+        - yarnpkg minify
         - trunk build --release --public-url /decrypt
     artifacts:
         paths:
