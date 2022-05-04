@@ -1,31 +1,5 @@
 const PKG_URL = "https://main.irmaseal-pkg.ihub.ru.nl";
 
-export async function encrypt(message, key, iv) {
-  try {
-    const keyHash = await crypto.subtle.digest("SHA-256", key);
-    const aesKey = await window.crypto.subtle.importKey(
-      "raw",
-      keyHash,
-      "AES-GCM",
-      true,
-      ["encrypt"]
-    );
-    const ct = await window.crypto.subtle.encrypt(
-      {
-        name: "AES-GCM",
-        iv,
-      },
-      aesKey,
-      new TextEncoder().encode(message)
-    );
-
-    return new Uint8Array(ct);
-  } catch (e) {
-    console.error(e);
-    return null;
-  }
-}
-
 export function irma_get_usk(keyrequest, timestamp) {
   return window
     .startIrma({
@@ -95,6 +69,32 @@ export async function irma_sign(hash) {
     });
 
     return signature;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+export async function encrypt(message, key, iv) {
+  try {
+    const keyHash = await crypto.subtle.digest("SHA-256", key);
+    const aesKey = await window.crypto.subtle.importKey(
+      "raw",
+      keyHash,
+      "AES-GCM",
+      true,
+      ["encrypt"]
+    );
+    const ct = await window.crypto.subtle.encrypt(
+      {
+        name: "AES-GCM",
+        iv,
+      },
+      aesKey,
+      new TextEncoder().encode(message)
+    );
+
+    return new Uint8Array(ct);
   } catch (e) {
     console.error(e);
     return null;

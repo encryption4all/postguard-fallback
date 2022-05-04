@@ -7,22 +7,25 @@
     "url": "git@tgrep.nl:tweedegolf/irma-seal-mailer.git"
   },
   "scripts": {
-    "build": "browserify -t swcify irma.js > static/irma.bundle.js",
+    "build": "browserify -t swcify script/irma.js > static/irma.bundle.js",
     "minify": "terser --compress --mangle -- static/irma.bundle.js > static/irma.bundle.min.js"
   },
   "author": "Marlon Baeten <marlon@tweedegolf.com>",
   "license": "UNLICENCED",
   "browserify": {
-    "transform": ["swcify"]
+    "transform": [
+      "swcify"
+    ]
   },
   "dependencies": {},
   "devDependencies": {
-    "@privacybydesign/irma-client": "^0.3.3",
-    "@privacybydesign/irma-core": "^0.3.3",
-    "@privacybydesign/irma-css": "^0.3.3",
-    "@privacybydesign/irma-popup": "^0.3.3",
+    "@privacybydesign/irma-client": "^0.4.3",
+    "@privacybydesign/irma-core": "^0.4.3",
+    "@privacybydesign/irma-css": "^0.4.3",
+    "@privacybydesign/irma-popup": "^0.4.3",
     "@swc/core": "^1.2.81",
     "browserify": "^17.0.0",
-    "swcify": "^1.0.1"
+    "swcify": "^1.0.1",
+    "terser": "^5.13.1"
   }
 }
