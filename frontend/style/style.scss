@@ -28,7 +28,7 @@ html {
 }
 
 h1 {
-  background: url('static/pg_logo.svg') no-repeat center;
+  background: url("pg_logo.svg") no-repeat center;
   background-size: contain;
   height: 5rem;
   line-height: 5rem;
@@ -46,7 +46,7 @@ h1 {
 
 body {
   background: $gray;
-  font-family: 'Arial', serif;
+  font-family: "Arial", serif;
   padding: 2rem;
   margin: 0;
 
@@ -88,7 +88,7 @@ main {
 
   form {
     &::before {
-      content: ' ';
+      content: " ";
       display: block;
       position: absolute;
       top: 0;
@@ -100,18 +100,19 @@ main {
       transform-origin: left;
       transform: scale(0, 1);
     }
-  
+
     &.encrypting::before {
       transform: scale(1, 1);
     }
-  
+
     &.sent::before {
       transform: none;
       transition: none;
-    }  
+    }
   }
 
-  label, dt {
+  label,
+  dt {
     display: block;
     margin-top: 1rem;
     font-weight: 700;
@@ -136,7 +137,10 @@ main {
   }
 }
 
-input:not([type=checkbox]), textarea, dd, select {
+input:not([type="checkbox"]),
+textarea,
+dd,
+select {
   display: block;
   width: 100%;
   background: white;
@@ -145,7 +149,7 @@ input:not([type=checkbox]), textarea, dd, select {
   font-size: 1.2rem;
   padding: 0.5rem;
   font-weight: 400;
-  font-family: 'Arial', serif;
+  font-family: "Arial", serif;
 
   &[disabled] {
     background-color: $gray;
@@ -153,7 +157,7 @@ input:not([type=checkbox]), textarea, dd, select {
   }
 
   pre {
-    font-family: 'Arial', serif;
+    font-family: "Arial", serif;
     margin: 0;
 
     &:empty {
@@ -167,7 +171,7 @@ input:not([type=checkbox]), textarea, dd, select {
         display: block;
         width: 100%;
         height: 100%;
-        background: url('static/pg_logo.svg') no-repeat center left;
+        background: url("pg_logo.svg") no-repeat center left;
         background-size: contain;
         box-sizing: border-box;
         animation: spin 2s infinite;
@@ -175,11 +179,6 @@ input:not([type=checkbox]), textarea, dd, select {
       }
     }
   }
-}
-
-dd {
-  background: $gray;
-  min-height: 2rem;
 }
 
 textarea {
@@ -198,15 +197,44 @@ button {
   position: relative;
   z-index: 10;
 
-  &[type=submit] {
+  &[type="submit"] {
     margin-top: 1rem;
+  }
+
+  &.center {
+    margin: 0.5rem auto;
+    display: block;
   }
 }
 
 .decrypted {
   border-top: 1px solid $gray-dark;
   margin-top: 2rem;
-  padding-top: 1rem
+  padding-top: 1rem;
+
+  dl {
+    display: grid;
+    grid-template-columns: max-content auto;
+  }
+
+  dt {
+    grid-column-start: 1;
+    margin-right: 0.5rem;
+  }
+
+  dd {
+    background: $gray;
+
+    &.header {
+      grid-column-start: 2;
+      min-height: 2rem;
+    }
+
+    &.body {
+      grid-column: 1 / span 2;
+      min-height: 10rem;
+    }
+  }
 }
 
 .attributes,
@@ -230,7 +258,8 @@ button {
     width: 38px;
   }
 
-  th, td {
+  th,
+  td {
     text-align: left;
 
     & > div {
@@ -277,12 +306,12 @@ button {
     display: block;
     width: 100%;
     border: 1px solid $gray-dark;
-    font-family: 'Arvo', serif;
+    font-family: "Arvo", serif;
     margin: 0.5rem 0;
     font-size: 1.2rem;
     padding: 0.5rem;
     font-weight: 400;
-    font-family: 'Arial', serif;
+    font-family: "Arial", serif;
     background: $gray;
     min-height: 2rem;
   }
