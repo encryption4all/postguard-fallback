@@ -27,6 +27,7 @@ mime = "0.3.16"
 getrandom = { version = "0.2", features = ["js"] }
 wasm-streams = "0.2.2"
 futures = "0.3.21"
+chrono = "0.4.19"
 
 [dependencies.web-sys]
 version = "0.3.55"

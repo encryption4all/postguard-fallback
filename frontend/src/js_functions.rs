@@ -7,8 +7,6 @@ use wasm_bindgen::{
 };
 use wasm_bindgen_futures::JsFuture;
 
-use wasm_streams::writable::sys::WritableStream as RawWritableStream;
-
 use crate::actions::SendError;
 use std::collections::HashMap;
 use web_sys::{Request, RequestInit, Response};
