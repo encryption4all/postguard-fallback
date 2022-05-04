@@ -27,6 +27,9 @@ build-frontend:
     image: ${CONTAINER_IMAGE}
     script:
         - cd frontend
+        - yarn
+        - yarn build
+        - yarn minify
         - trunk build --release --public-url /decrypt
     artifacts:
         paths:
