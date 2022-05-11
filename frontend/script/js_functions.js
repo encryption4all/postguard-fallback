@@ -1,4 +1,4 @@
-const PKG_URL = "https://main.irmaseal-pkg.ihub.ru.nl";
+const PKG_URL = "https://stable.irmaseal-pkg.ihub.ru.nl";
 
 export function irma_get_usk(keyrequest, timestamp) {
   return window
