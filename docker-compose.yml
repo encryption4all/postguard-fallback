@@ -8,7 +8,7 @@ services:
         volumes:
           - "./common:/app/common"
           - "./frontend:/app/frontend"
-        expose: [8080]
+        ports: ["127.0.0.1:8081:8080"]
         command: [trunk, serve, --proxy-backend=http://backend:9000/api/]
         working_dir: /app/frontend
         environment:
