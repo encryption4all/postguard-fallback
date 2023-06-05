@@ -10,13 +10,6 @@ export function irma_get_usk(keyrequest, timestamp) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(keyrequest),
       },
-      mapping: {
-        sessionPtr: (r) => {
-          const ptr = r.sessionPtr;
-          ptr.u = `https://ihub.ru.nl/irma/1/${ptr.u}`;
-          return ptr;
-        },
-      },
       result: {
         url: (o, { sessionToken }) => `${o.url}/v2/request/jwt/${sessionToken}`,
         parseResponse: (r) => {
