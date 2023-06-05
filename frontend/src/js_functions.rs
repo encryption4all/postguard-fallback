@@ -46,7 +46,7 @@ struct PublicKeyResponse {
 }
 
 pub async fn get_public_key() -> Option<String> {
-    let data = download_bytes("https://main.irmaseal-pkg.ihub.ru.nl").await?;
+    let data = download_bytes("https://postguard.eu/pkg").await?;
     Some(
         serde_json::from_slice::<PublicKeyResponse>(&data)
             .ok()?
