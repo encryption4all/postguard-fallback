@@ -1,6 +1,6 @@
 # <p align="center"><img src="./img/pg_logo.svg" height="128px" alt="PostGuard" /></p>
 
-> For full documentation, visit [docs.postguard.eu](https://docs.postguard.eu/repos/postguard-fallback).
+> For full documentation, visit [docs.postguard.eu](https://docs.postguard.eu).
 
 Web-based decryption service for PostGuard encrypted messages, also known as TGuard. This is the fallback for users who do not have a PostGuard client installed. They can open encrypted messages in their browser, verify their identity with [Yivi](https://yivi.app), and decrypt the contents.
 
