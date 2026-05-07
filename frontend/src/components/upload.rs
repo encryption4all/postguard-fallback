@@ -136,7 +136,8 @@ impl Component for Upload {
                     }
                 }
                 <div>
-                    <input type="file" multiple=false onchange=self.link.callback(move |value| {
+                    <label for="pg-decrypt-file">{"Select an encrypted file to decrypt:"}</label>
+                    <input id="pg-decrypt-file" type="file" multiple=false onchange=self.link.callback(move |value| {
                         let mut result = Vec::new();
                         if let ChangeData::Files(files) = value {
                             let files = js_sys::try_iter(&files)

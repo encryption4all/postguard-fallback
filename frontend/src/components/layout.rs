@@ -23,10 +23,13 @@ impl Component for Layout {
 
     fn view(&self) -> yew::Html {
         html! {
-            <main>
-                <Title>{"TGuard"}</Title>
-                { for self.props.children.iter() }
-            </main>
+            <>
+                <a href="#main-content" class="skip-link">{"Skip to main content"}</a>
+                <main id="main-content" tabindex="-1">
+                    <Title>{"PostGuard Fallback"}</Title>
+                    { for self.props.children.iter() }
+                </main>
+            </>
         }
     }
 

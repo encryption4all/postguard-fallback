@@ -28,8 +28,12 @@ impl Component for Alert {
     }
 
     fn view(&self) -> yew::Html {
+        let role = match self.props.kind {
+            AlertKind::Error => "alert",
+            _ => "status",
+        };
         html! {
-            <div class=self.classes()>
+            <div class=self.classes() role=role aria-live={ if role == "alert" { "assertive" } else { "polite" } }>
             { for self.props.children.iter() }
             </div>
         }
