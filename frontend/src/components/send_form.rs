@@ -253,10 +253,12 @@ impl Component for SendForm {
                 }
                 <div>
                     <div>
-                        <label>{"Your email:"}</label>
+                        <label for="pg-from">{"Your email:"}</label>
                         <input
+                            id="pg-from"
                             type="email"
                             name="from"
+                            autocomplete="email"
                             maxlength="512"
                             required=true
                             disabled={disabled}
@@ -293,7 +295,7 @@ impl Component for SendForm {
                             class="outlined"
                             onclick=self.link.callback(|e: MouseEvent| { e.prevent_default(); Self::Message::AddTo })
                         >
-                            {"+ "}
+                            <span aria-hidden="true">{"+ "}</span>
                             {"Add recipient"}
                         </button>
 
@@ -370,8 +372,9 @@ impl Component for SendForm {
                         }}
                     </div>
                     <div>
-                        <label>{"Subject:"}</label>
+                        <label for="pg-subject">{"Subject:"}</label>
                         <input
+                            id="pg-subject"
                             name="subject"
                             maxlength="256"
                             required=true
@@ -381,8 +384,9 @@ impl Component for SendForm {
                         />
                     </div>
                     <div>
-                        <label>{"Message:"}</label>
+                        <label for="pg-message">{"Message:"}</label>
                         <textarea
+                            id="pg-message"
                             name="content"
                             maxlength="16384"
                             required=true
@@ -392,8 +396,9 @@ impl Component for SendForm {
                         />
                     </div>
                     <div>
-                        <label>{"Attachments:"}</label>
+                        <label for="pg-attachments">{"Attachments:"}</label>
                         <input
+                            id="pg-attachments"
                             type="file"
                             multiple=true
                             onchange=self.link.callback(move |value| {
@@ -426,9 +431,10 @@ impl Component for SendForm {
                                                     <button
                                                         type="button"
                                                         class="delete"
+                                                        aria-label="Remove attachment"
                                                         onclick=self.link.callback(move |_| Self::Message::DeleteFile(index))
                                                     >
-                                                        {"×"}
+                                                        <span aria-hidden="true">{"×"}</span>
                                                     </button>
                                                 </td>
                                             </tr>

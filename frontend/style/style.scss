@@ -355,3 +355,36 @@ button {
     }
   }
 }
+
+/* WCAG 2.2 AA: focus indicators and skip-link.
+   Source elements have no :focus rules, so keyboard users had no
+   visible focus state. */
+*:focus-visible {
+  outline: 2px solid #006ef4;
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  padding: 0.5rem 1rem;
+  background: #006ef4;
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  z-index: 1000;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Bump the close-icon button to meet 24×24 minimum (2.5.8) */
+button.delete.small {
+  min-width: 24px;
+  min-height: 24px;
+  padding: 0 0.4rem;
+}
